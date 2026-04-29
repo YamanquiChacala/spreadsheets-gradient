@@ -1,5 +1,4 @@
-// export { buildDriveCard } from "./drive-triggers";
-// export { buildSheetsCard } from "./sheet-triggers";
+export { onInstall, onOpen } from "./triggers";
 
 // // Tests
 // export * from "./tests/_index";

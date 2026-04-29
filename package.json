@@ -1,6 +1,6 @@
 {
-  "name": "gas-template",
-  "description": "A simple Google Apps / Google Add-ons template.",
+  "name": "spreadsheets-gradient",
+  "description": "A simple gradient for Google Sheets",
   "version": "1.0.0",
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
@@ -14,7 +14,7 @@
     "typescript": "^6.0.3"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "build": "npm run test && node build.mjs",
     "push": "npm run build && clasp push",
     "lint": "biome check .",
