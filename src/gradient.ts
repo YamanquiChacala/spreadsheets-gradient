@@ -14,8 +14,13 @@ export function fillGradient() {
     const numRows = range.getNumRows();
     const numCols = range.getNumColumns();
 
+    // Prevent division by zero if it's a single cell
+    if (numRows <= 1 && numCols <= 1) return;
+
     const startColor = range.getBackground(); // Top left cell
-    const endColor = range.getCell(numRows, numCols).getBackground();
+
+    const brCell = range.getCell(numRows, numCols);
+    const endColor = brCell.isPartOfMerge() ? (brCell.getMergedRanges()?.[0]?.getBackground() ?? brCell.getBackground()) : brCell.getBackground();
 
     const startRGB = hexToRgb(startColor);
     const endRGB = hexToRgb(endColor);
@@ -25,24 +30,49 @@ export function fillGradient() {
     const startHSL = rgbToHsl(startRGB);
     const endHSL = rgbToHsl(endRGB);
 
-    const colors: string[][] = [];
-    for (let row = 0; row < numRows; row++) {
-        const rowColors: string[] = [];
+    const rangeRowStart = range.getRow();
+    const rangeColStart = range.getColumn();
 
-        for (let col = 0; col < numCols; col++) {
-            const tRow = numRows > 1 ? row / (numRows - 1) : 0;
-            const tCol = numCols > 1 ? col / (numCols - 1) : 0;
+    // ✨ Build a map to intercept merged cells and find their true center
+    const mergeMap = new Map<string, { rCenter: number; cCenter: number }>();
+
+    for (const mergedRange of range.getMergedRanges()) {
+        // Calculate the top-left coordinate relative to our active range
+        const r = mergedRange.getRow() - rangeRowStart;
+        const c = mergedRange.getColumn() - rangeColStart;
+
+        // Calculate the center point.
+        // e.g., a 3x3 merge at 0,0 has its center at 1,1
+        const rCenter = r + (mergedRange.getNumRows() - 1) / 2;
+        const cCenter = c + (mergedRange.getNumColumns() - 1) / 2;
+
+        mergeMap.set(`${r},${c}`, { rCenter, cCenter });
+    }
+
+    // ✨ Generate the grid using pure array mapping
+    const colors = Array.from({ length: numRows }, (_, r) =>
+        Array.from({ length: numCols }, (_, c) => {
+            // If this cell is the anchor of a merge, use its computed center.
+            // Otherwise, just use the normal r and c.
+            const mergeCenter = mergeMap.get(`${r},${c}`);
+            const rCalc = mergeCenter ? mergeCenter.rCenter : r;
+            const cCalc = mergeCenter ? mergeCenter.cCenter : c;
+
+            const tRow = numRows > 1 ? rCalc / (numRows - 1) : 0;
+            const tCol = numCols > 1 ? cCalc / (numCols - 1) : 0;
 
             let t: number;
             if (numRows > 1 && numCols > 1) {
                 t = (tRow + tCol) / 2;
             } else if (numRows > 1) {
                 t = tRow;
-            } else if (numCols > 1) {
-                t = tCol;
             } else {
-                t = 0;
+                t = tCol;
             }
+
+            // Defensive clamping: if a user selection cuts through a massive merged cell,
+            // the true center might mathematically land outside the [0, 1] bounds.
+            t = Math.max(0, Math.min(1, t));
 
             let dh = endHSL.h - startHSL.h;
             dh = ((((dh + 0.5) % 1) + 1) % 1) - 0.5;
@@ -55,10 +85,9 @@ export function fillGradient() {
             const l = startHSL.l + t * (endHSL.l - startHSL.l);
 
             const rgb = hslToRgb({ h, s, l });
-            rowColors.push(rgbToHex(rgb));
-        }
-        colors.push(rowColors);
-    }
+            return rgbToHex(rgb);
+        }),
+    );
 
     range.setBackgrounds(colors);
 }
@@ -92,6 +121,8 @@ export function colorDistinctCells() {
 
     const step = getStep(visibleCount);
 
+    const hueOffset = Math.random();
+
     let k = 0;
 
     const colors = Array.from({ length: numRows }, (_, r) => {
@@ -100,7 +131,7 @@ export function colorDistinctCells() {
 
         return Array.from({ length: numCols }, (_, c) => {
             if (hiddenRow[c]) return null;
-            const h = ((k * step) % visibleCount) / visibleCount;
+            const h = (((k * step) % visibleCount) / visibleCount + hueOffset) % 1;
             k++;
             const rgb = hslToRgb({ h, s, l });
             return rgbToHex(rgb);
@@ -138,6 +169,8 @@ export function colorDistinctGrid() {
     const phi1 = 0.6180339887;
     const phi2 = 0.7548776662;
 
+    const hueOffset = Math.random();
+
     const colors = Array.from({ length: numRows }, (_, r) => {
         const hiddenMapRow = hiddenMap[r];
 
@@ -146,7 +179,7 @@ export function colorDistinctGrid() {
         return Array.from({ length: numCols }, (_, c) => {
             if (hiddenMapRow[c]) return null;
 
-            const h = (r * phi1 + c * phi2) % 1;
+            const h = (r * phi1 + c * phi2 + hueOffset) % 1;
             const rgb = hslToRgb({ h, s, l });
             return rgbToHex(rgb);
         });
