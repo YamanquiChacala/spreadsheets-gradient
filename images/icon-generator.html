@@ -1,0 +1,246 @@
+<style>
+    body {
+        background: #dcdcdc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px;
+        font-family: sans-serif;
+        gap: 24px;
+        box-sizing: border-box;
+    }
+    h2 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        align-items: flex-end;
+        justify-content: center;
+    }
+    .box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+    canvas {
+        display: block;
+        border-radius: 4px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+    }
+    .lbl {
+        font-size: 11px;
+        color: #555;
+        font-weight: 600;
+    }
+    button {
+        padding: 6px 14px;
+        background: #1a7a30;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    button:hover {
+        background: #145f25;
+    }
+</style>
+
+<h2>Gradient Tools Icon</h2>
+<div class="row">
+    <div class="box">
+        <canvas id="c32" width="32" height="32"></canvas>
+        <span class="lbl">32×32</span>
+        <button type="button" id="button32">⬇ Download</button>
+    </div>
+    <div class="box">
+        <canvas id="c48" width="48" height="48"></canvas>
+        <span class="lbl">48×48</span>
+        <button type="button" id="button48">⬇ Download</button>
+    </div>
+    <div class="box">
+        <canvas id="c96" width="96" height="96"></canvas>
+        <span class="lbl">96×96</span>
+        <button type="button" id="button96">⬇ Download</button>
+    </div>
+    <div class="box">
+        <canvas id="c128" width="128" height="128"></canvas>
+        <span class="lbl">128×128</span>
+        <button type="button" id="button128">⬇ Download</button>
+    </div>
+</div>
+
+<script>
+    function roundedRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h);
+        ctx.arcTo(x, y + h, x, y + h - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+    }
+
+    function drawIcon(canvas, turns) {
+        const ctx = canvas.getContext("2d");
+        const size = canvas.width;
+        const pixelScale = size / 128;
+        ctx.clearRect(0, 0, size, size);
+
+        // Background
+        roundedRect(ctx, 0, 0, size, size, 15 * pixelScale);
+        ctx.fillStyle = "#0c1a0e";
+        ctx.fill();
+
+        // Grid 3 cols × 5 rows
+        const pad = 9 * pixelScale;
+        const gap = Math.max(0.8, 3 * pixelScale);
+        const cols = 3;
+        const rows = 5;
+        const cellWidth = (size - 2 * pad - gap * (cols - 1)) / cols;
+        const cellHeight = (size - 2 * pad - gap * (rows - 1)) / rows;
+        const c00 = [150, 35, 215];
+        const c10 = [35, 145, 235];
+        const c01 = [38, 178, 68];
+        const c11 = [232, 200, 35];
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const tx = c / (cols - 1);
+                const ty = r / (rows - 1);
+                const R = Math.round(c00[0] + (c10[0] - c00[0]) * tx + (c01[0] - c00[0]) * ty + (c11[0] - c10[0] - c01[0] + c00[0]) * tx * ty);
+                const G = Math.round(c00[1] + (c10[1] - c00[1]) * tx + (c01[1] - c00[1]) * ty + (c11[1] - c10[1] - c01[1] + c00[1]) * tx * ty);
+                const B = Math.round(c00[2] + (c10[2] - c00[2]) * tx + (c01[2] - c00[2]) * ty + (c11[2] - c10[2] - c01[2] + c00[2]) * tx * ty);
+                ctx.fillStyle = `rgb(${R},${G},${B})`;
+                roundedRect(ctx, pad + c * (cellWidth + gap), pad + r * (cellHeight + gap), cellWidth, cellHeight, Math.max(1.5, 3 * pixelScale));
+                ctx.fill();
+            }
+        }
+
+        // Spiral — lower-right corner
+        const scx = size * 0.67;
+        const scy = size * 0.7;
+        const innerR = 3 * pixelScale;
+        const outerR = 35 * pixelScale;
+        const a0 = Math.PI;
+        const a1 = a0 - turns * 2 * Math.PI;
+        const steps = 300,
+            p = 2.3;
+
+        function spts(dr) {
+            const out = [];
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const ang = a0 + t * (a1 - a0);
+                const r = innerR + dr + t * (outerR + dr - (innerR + dr));
+                out.push([
+                    scx + r * Math.sign(Math.cos(ang)) * Math.abs(Math.cos(ang)) ** (2 / p),
+                    scy + r * Math.sign(Math.sin(ang)) * Math.abs(Math.sin(ang)) ** (2 / p),
+                ]);
+            }
+            return out;
+        }
+
+        const pts = spts(0);
+        const lw = Math.max(2, 10 * pixelScale);
+
+        // Under-shadow
+        const esh = spts(6 * pixelScale);
+        ctx.save();
+        ctx.strokeStyle = "rgba(4,22,8,0.45)";
+        ctx.lineWidth = Math.max(4, 6 * pixelScale);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(esh[0][0], esh[0][1]);
+        for (let i = 1; i < esh.length; i++) ctx.lineTo(esh[i][0], esh[i][1]);
+        ctx.stroke();
+        ctx.restore();
+
+        // Main spiral body
+        const sG = ctx.createLinearGradient(scx - outerR, scy - outerR, scx + outerR, scy + outerR);
+        sG.addColorStop(0, "#62e882");
+        sG.addColorStop(0.45, "#1d7c32");
+        sG.addColorStop(1, "#0b3515");
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.75)";
+        ctx.shadowBlur = 7 * pixelScale;
+        ctx.shadowOffsetX = 1.5 * pixelScale;
+        ctx.shadowOffsetY = 3 * pixelScale;
+        ctx.strokeStyle = sG;
+        ctx.lineWidth = lw;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.stroke();
+        ctx.restore();
+
+        // Highlight sweep
+        const hiG = ctx.createLinearGradient(scx - outerR, scy - outerR, scx + 15 * pixelScale, scy + 15 * pixelScale);
+        hiG.addColorStop(0, "rgba(255,255,255,0.30)");
+        hiG.addColorStop(0.55, "rgba(255,255,255,0.05)");
+        hiG.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.save();
+        ctx.strokeStyle = hiG;
+        ctx.lineWidth = Math.max(1, 4 * pixelScale);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.stroke();
+        ctx.restore();
+
+        // Edge highlight
+        const ehi = spts(-9 * pixelScale);
+        ctx.save();
+        ctx.strokeStyle = "rgba(108,230,140,0.40)";
+        ctx.lineWidth = Math.max(1, 3 * pixelScale);
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(ehi[0][0], ehi[0][1]);
+        for (let i = 1; i < ehi.length; i++) ctx.lineTo(ehi[i][0], ehi[i][1]);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    drawIcon(document.getElementById("c128"), 2.5);
+    drawIcon(document.getElementById("c96"), 2.5);
+    drawIcon(document.getElementById("c48"), 1.5);
+    drawIcon(document.getElementById("c32"), 1.5);
+
+    function dl(id, name) {
+        const a = document.createElement("a");
+        a.download = name;
+        a.href = document.getElementById(id).toDataURL("image/png");
+        a.click();
+    }
+
+    document.getElementById("button32").addEventListener("click", () => {
+        dl("c32", "icon-32.png");
+    });
+    document.getElementById("button48").addEventListener("click", () => {
+        dl("c48", "icon-48.png");
+    });
+    document.getElementById("button96").addEventListener("click", () => {
+        dl("c96", "icon-96.png");
+    });
+    document.getElementById("button128").addEventListener("click", () => {
+        dl("c128", "icon-128.png");
+    });
+</script>

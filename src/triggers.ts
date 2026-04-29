@@ -14,10 +14,10 @@ export function onInstall() {
 export function onOpen() {
     SpreadsheetApp.getUi()
         .createMenu("Gradient Tools")
-        .addItem("Fill Gradient", fillGradient.name)
-        .addItem("Fill Distinct Linear", colorDistinctCells.name)
-        .addItem("Fill Distinct Grid", colorDistinctGrid.name)
+        .addItem("🏳️‍🌈 Fill Gradient", fillGradient.name)
+        .addItem("🚥 Fill Distinct Linear", colorDistinctCells.name)
+        .addItem("🎨 Fill Distinct Grid", colorDistinctGrid.name)
         .addSeparator()
-        .addItem("Setup Spreadsheet", setupSheet.name)
+        .addItem("🏁 Setup Spreadsheet", setupSheet.name)
         .addToUi();
 }

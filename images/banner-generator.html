@@ -1,0 +1,187 @@
+<style>
+    @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap");
+    body {
+        background: #c8c8c8;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        margin: 0;
+        font-family: sans-serif;
+    }
+    #banner {
+        border-radius: 12px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+        image-rendering: auto;
+    }
+    #status {
+        font-size: 12px;
+        color: #555;
+        min-height: 16px;
+    }
+    button {
+        padding: 9px 22px;
+        background: #1a7a30;
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    button:hover {
+        background: #145f25;
+    }
+</style>
+
+<canvas id="banner" width="220" height="140"></canvas>
+<div id="status">Loading…</div>
+<button type="button" id="download">⬇ Download Banner PNG (220×140)</button>
+
+<script>
+    const cv = document.getElementById("banner");
+    const ctx = cv.getContext("2d");
+    const status = document.getElementById("status");
+
+    function roundedRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h);
+        ctx.arcTo(x, y + h, x, y + h - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+    }
+
+    const c00 = [150, 35, 215];
+    const c10 = [35, 145, 235];
+    const c01 = [38, 178, 68];
+    const c11 = [232, 200, 35];
+    function bilinear(tx, ty) {
+        return [
+            c00[0] + (c10[0] - c00[0]) * tx + (c01[0] - c00[0]) * ty + (c11[0] - c10[0] - c01[0] + c00[0]) * tx * ty,
+            c00[1] + (c10[1] - c00[1]) * tx + (c01[1] - c00[1]) * ty + (c11[1] - c10[1] - c01[1] + c00[1]) * tx * ty,
+            c00[2] + (c10[2] - c00[2]) * tx + (c01[2] - c00[2]) * ty + (c11[2] - c10[2] - c01[2] + c00[2]) * tx * ty,
+        ].map(Math.round);
+    }
+
+    function draw(logo) {
+        const W = 220;
+        const H = 140;
+        ctx.clearRect(0, 0, W, H);
+
+        // --- Background ---
+        ctx.fillStyle = "#0d1d0f";
+        ctx.fillRect(0, 0, W, H);
+        const bg = ctx.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, "rgba(22,52,27,0.6)");
+        bg.addColorStop(1, "rgba(0,0,0,0.35)");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // --- Gradient cell grid (right column, 3×5) ---
+        const gx = 152;
+        const gy = 8;
+        const gcols = 3;
+        const grows = 10;
+        const ggap = 2;
+        const gcw = (W - gx - 8 - ggap * (gcols - 1)) / gcols;
+        const gch = (H - gy * 2 - ggap * (grows - 1)) / grows;
+        for (let r = 0; r < grows; r++)
+            for (let c = 0; c < gcols; c++) {
+                const [R, G, B] = bilinear(c / (gcols - 1), r / (grows - 1));
+                ctx.fillStyle = `rgb(${R},${G},${B})`;
+                roundedRect(ctx, gx + c * (gcw + ggap), gy + r * (gch + ggap), gcw, gch, 2.5);
+                ctx.fill();
+            }
+
+        // --- Vertical separator ---
+        const sepX = 148;
+        ctx.strokeStyle = "rgba(255,255,255,0.10)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(sepX, 10);
+        ctx.lineTo(sepX, H - 10);
+        ctx.stroke();
+
+        // --- School logo ---
+        if (logo) {
+            const lsz = 32;
+            const lx = 148 - lsz - 10;
+            const ly = 10;
+            ctx.save();
+            // soft glow behind logo
+            ctx.shadowColor = "rgba(62,200,90,0.25)";
+            ctx.shadowBlur = 14;
+            ctx.drawImage(logo, lx, ly, lsz, lsz);
+            ctx.restore();
+        }
+
+        // --- Title text ---
+        const tx = 15;
+        const maxW = sepX - tx - 4;
+        ctx.textBaseline = "top";
+
+        // Palette emoji
+        ctx.font = "30px sans-serif";
+        ctx.fillStyle = "#fff";
+        ctx.fillText("🎨", tx, tx);
+
+        // Library name — 3 bold lines
+        ctx.fillStyle = "rgba(255,255,255,0.97)";
+        ctx.font = 'bold 15px "Montserrat",sans-serif';
+        ctx.fillText("Color & Gradient", tx, 55, maxW);
+        ctx.fillText("Tools", tx + 5, 75, maxW);
+
+        // Subtitle
+        ctx.fillStyle = "rgba(255,255,255,0.60)";
+        ctx.font = '12px "Montserrat",sans-serif';
+        ctx.fillText("for Google Sheets", tx + 10, 100, maxW);
+
+        // Bottom accent rule with gradient
+        const rule = ctx.createLinearGradient(8, 0, sepX - 4, 0);
+        rule.addColorStop(0, "rgba(62,200,90,0.0)");
+        rule.addColorStop(0.4, "rgba(62,200,90,0.45)");
+        rule.addColorStop(1, "rgba(62,200,90,0.0)");
+        ctx.strokeStyle = rule;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(8, H - 12);
+        ctx.lineTo(sepX - 4, H - 12);
+        ctx.stroke();
+    }
+
+    async function init() {
+        await document.fonts.ready;
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            draw(img);
+            status.textContent = "Banner ready ✓";
+        };
+        img.onerror = () => {
+            draw(null);
+            status.textContent = "⚠ Logo failed to load — drawn without it";
+        };
+        img.src = "https://media.githubusercontent.com/media/YamanquiChacala/GeneradorDeReportes/refs/heads/main/images/school_64.png";
+    }
+
+    function dl() {
+        const a = document.createElement("a");
+        a.download = "gradient-tools-banner.png";
+        a.href = cv.toDataURL("image/png");
+        a.click();
+    }
+
+    init();
+
+    document.getElementById("download").addEventListener("click", () => {
+        dl();
+    });
+</script>
